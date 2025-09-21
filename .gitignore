@@ -1,6 +1,17 @@
+# 环境变量文件
+.env
+.env.local
+.env.production
+
+# 虚拟环境
+freshTrack/
+venv/
+env/
+ENV/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
-*.py[codz]
+*.py[cod]
 *$py.class
 
 # C extensions
