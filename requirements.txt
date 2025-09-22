@@ -7,3 +7,6 @@ tencentcloud-sdk-python-hunyuan==3.0.1459
 urllib3==2.5.0
 sqlalchemy>=1.4
 psycopg2-binary>=2.9
+flask>=2.0.0
+flask-cors>=3.0.0
+python-dotenv>=0.19.0

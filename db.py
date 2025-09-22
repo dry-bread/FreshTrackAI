@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 load_dotenv()
+from typing import Optional
 from sqlalchemy import create_engine, Column, Integer, String, Numeric, Text, JSON, TIMESTAMP
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -60,6 +61,81 @@ def delete_item(session, item_id: int):
         session.commit()
         return True
     return False
+
+
+def get_items_for_recommendation(session, device_id: Optional[str] = None):
+    """
+    获取用于菜谱推荐的食材列表，包含转换为推荐所需格式
+    
+    Args:
+        session: 数据库会话
+        device_id: 可选的设备ID筛选
+        
+    Returns:
+        List[Dict]: 转换为推荐系统所需格式的食材列表
+    """
+    if device_id:
+        items = session.query(FridgeItem).filter(FridgeItem.device_id == device_id).all()
+    else:
+        items = session.query(FridgeItem).all()
+    
+    # 转换为推荐系统所需的格式
+    converted_items = []
+    for item in items:
+        converted_item = {
+            "id": item.id,
+            "name": item.name,
+            "category": item.category or "未分类",
+            "subcategory": item.subcategory,
+            "brand": item.brand,
+            "item_amount_desc": item.item_amount_desc or "未知数量",
+            "freshness": item.freshness or "good",
+            "expiry_estimate": item.expiry_estimate or "未知",
+            "put_in_time": item.put_in_time.isoformat() if item.put_in_time else None,
+            "detected_at": item.detected_at.isoformat() if item.detected_at else None,
+            "additional_info": item.additional_info or {},
+            "position": item.position or {},
+            "confidence": float(item.confidence) if item.confidence else 0.0
+        }
+        converted_items.append(converted_item)
+    
+    return converted_items
+
+
+def get_current_fridge_summary(session, device_id: Optional[str] = None):
+    """
+    获取当前冰箱状态摘要
+    
+    Args:
+        session: 数据库会话  
+        device_id: 可选的设备ID筛选
+        
+    Returns:
+        Dict: 冰箱状态摘要
+    """
+    items = get_items_for_recommendation(session, device_id)
+    
+    # 统计信息
+    total_items = len(items)
+    categories = {}
+    freshness_stats = {"good": 0, "fair": 0, "poor": 0}
+    
+    for item in items:
+        # 统计分类
+        category = item.get("category", "未分类")
+        categories[category] = categories.get(category, 0) + 1
+        
+        # 统计新鲜度
+        freshness = item.get("freshness", "good")
+        if freshness in freshness_stats:
+            freshness_stats[freshness] += 1
+    
+    return {
+        "total_items": total_items,
+        "categories": categories,
+        "freshness_stats": freshness_stats,
+        "items": items
+    }
 
 
 if __name__ == "__main__":
